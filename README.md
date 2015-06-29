@@ -4,7 +4,7 @@
 [![CI](https://github.com/philiprehberger/rb-feature-flag/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/rb-feature-flag/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/philiprehberger/rb-feature-flag)](LICENSE)
 
-Minimal feature flag system with YAML, ENV, and in-memory backends. Supports percentage rollout and A/B variant assignment.
+Minimal feature flag system with YAML, ENV, and in-memory backends. Supports percentage rollout, A/B variants, flag dependencies, scheduling, metrics, user targeting, and flag groups.
 
 ## Requirements
 
@@ -68,6 +68,101 @@ variant = Philiprehberger::FeatureFlag.variant(:button_color, user_id: current_u
 # => 'red', 'blue', or 'green' (consistent per user)
 ```
 
+### Dependencies
+
+Gate a flag behind another flag. The dependent flag is only enabled when its required flag is also enabled.
+
+```ruby
+flags = Philiprehberger::FeatureFlag
+flags.depends_on(:new_ui, requires: :beta_users)
+
+# :new_ui will only be enabled if :beta_users is also enabled
+flags.enabled?(:new_ui) # => false (unless :beta_users is enabled)
+```
+
+Dependencies can be chained:
+
+```ruby
+flags.depends_on(:beta, requires: :alpha)
+flags.depends_on(:gamma, requires: :beta)
+# :gamma requires :beta, which requires :alpha
+```
+
+### Scheduling
+
+Enable or disable flags at specific times. Flags are only active within the scheduled window.
+
+```ruby
+flags = Philiprehberger::FeatureFlag
+
+flags.schedule(:holiday_banner,
+               enable_at: Time.new(2026, 12, 24),
+               disable_at: Time.new(2026, 12, 26))
+
+# Only enabled between Dec 24 and Dec 26
+flags.enabled?(:holiday_banner)
+```
+
+You can also use `enable_at` or `disable_at` individually:
+
+```ruby
+# Enable after a certain time (no end)
+flags.schedule(:new_feature, enable_at: Time.new(2026, 4, 1))
+
+# Disable after a certain time (active until then)
+flags.schedule(:old_feature, disable_at: Time.new(2026, 6, 1))
+```
+
+### Metrics
+
+Track how often each flag is evaluated and whether it was enabled or disabled.
+
+```ruby
+flags = Philiprehberger::FeatureFlag
+
+flags.enabled?(:feature_x)
+flags.enabled?(:feature_x)
+
+flags.metrics(:feature_x)
+# => { checks: 2, enabled: 1, disabled: 1 }
+```
+
+Metrics are reset when `reset!` is called.
+
+### User targeting
+
+Whitelist specific users for a flag, independent of the backend value.
+
+```ruby
+flags = Philiprehberger::FeatureFlag
+
+flags.enable_for(:feature, users: ["user_1", "user_2"])
+
+flags.enabled?(:feature, user: "user_1") # => true
+flags.enabled?(:feature, user: "user_3") # => false (falls back to backend)
+```
+
+Remove users from the whitelist:
+
+```ruby
+flags.disable_for(:feature, users: ["user_1"])
+```
+
+### Groups
+
+Group flags together for bulk enable/disable operations.
+
+```ruby
+flags = Philiprehberger::FeatureFlag
+
+flags.group(:beta, [:feature_a, :feature_b, :feature_c])
+
+flags.enable_group(:beta)   # enables all three flags
+flags.disable_group(:beta)  # disables all three flags
+
+flags.group_flags(:beta)    # => [:feature_a, :feature_b, :feature_c]
+```
+
 ### YAML file format
 
 ```yaml
@@ -112,11 +207,20 @@ Philiprehberger::FeatureFlag.reload!
 | Method | Description |
 |--------|-------------|
 | `.configure { \|c\| ... }` | Configure the backend |
-| `.enabled?(flag, user_id: nil)` | Check if a flag is enabled |
+| `.enabled?(flag, user_id: nil, user: nil)` | Check if a flag is enabled |
 | `.variant(flag, user_id:)` | Get A/B variant for a user |
 | `.with(flag, value) { }` | Override a flag in a block |
 | `.reload!` | Reload flags from the backend |
 | `.reset!` | Reset configuration and overrides |
+| `.depends_on(flag, requires:)` | Declare a flag dependency |
+| `.schedule(flag, enable_at:, disable_at:)` | Schedule flag activation window |
+| `.metrics(flag)` | Get check/enabled/disabled counts |
+| `.enable_for(flag, users:)` | Whitelist users for a flag |
+| `.disable_for(flag, users:)` | Remove users from whitelist |
+| `.group(name, flags)` | Define a flag group |
+| `.enable_group(name)` | Enable all flags in a group |
+| `.disable_group(name)` | Disable all flags in a group |
+| `.group_flags(name)` | List flags in a group |
 
 ## Development
 
