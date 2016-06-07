@@ -78,7 +78,7 @@ module Philiprehberger
         resolve_backend_value(flag, user_id)
       end
 
-      def resolve_backend_value(flag, user_id)
+      def resolve_backend_value(flag, user_id) # rubocop:disable Naming/PredicateMethod
         value = configuration.backend.get(flag)
         return false if value.nil?
         return Rollout.enabled_for?(flag, user_id, value['percentage']) if rollout?(value)
