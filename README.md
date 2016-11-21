@@ -4,7 +4,7 @@
 [![CI](https://github.com/philiprehberger/rb-feature-flag/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/rb-feature-flag/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/philiprehberger/rb-feature-flag)](LICENSE)
 
-Minimal feature flag system with YAML, ENV, and in-memory backends. Supports percentage rollout, A/B variants, flag dependencies, scheduling, metrics, user targeting, and flag groups.
+Minimal feature flag system with YAML, ENV, and in-memory backends for Ruby
 
 ## Requirements
 
@@ -232,4 +232,4 @@ bundle exec rubocop
 
 ## License
 
-MIT License. See [LICENSE](LICENSE) for details.
+MIT

@@ -6,7 +6,7 @@ Gem::Specification.new do |spec|
   spec.name          = 'philiprehberger-feature_flag'
   spec.version       = Philiprehberger::FeatureFlag::VERSION
   spec.authors       = ['Philip Rehberger']
-  spec.email         = ['philiprehberger@users.noreply.github.com']
+  spec.email         = ['me@philiprehberger.com']
 
   spec.summary       = 'Minimal feature flag system with YAML, ENV, and in-memory backends'
   spec.description   = 'A lightweight feature flag library supporting in-memory, ENV, and YAML backends ' \
@@ -20,9 +20,10 @@ Gem::Specification.new do |spec|
     'homepage_uri' => spec.homepage,
     'source_code_uri' => spec.homepage,
     'changelog_uri' => "#{spec.homepage}/blob/main/CHANGELOG.md",
+    'bug_tracker_uri' => "#{spec.homepage}/issues",
     'rubygems_mfa_required' => 'true'
   }
 
-  spec.files = Dir.glob('lib/**/*') + %w[README.md CHANGELOG.md LICENSE]
+  spec.files = Dir['lib/**/*.rb', 'LICENSE', 'README.md', 'CHANGELOG.md']
   spec.require_paths = ['lib']
 end
