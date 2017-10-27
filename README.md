@@ -1,7 +1,7 @@
 # philiprehberger-feature_flag
 
+[![Tests](https://github.com/philiprehberger/rb-feature-flag/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/rb-feature-flag/actions/workflows/ci.yml)
 [![Gem Version](https://badge.fury.io/rb/philiprehberger-feature_flag.svg)](https://rubygems.org/gems/philiprehberger-feature_flag)
-[![CI](https://github.com/philiprehberger/rb-feature-flag/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/rb-feature-flag/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/philiprehberger/rb-feature-flag)](LICENSE)
 
 Minimal feature flag system with YAML, ENV, and in-memory backends for Ruby
