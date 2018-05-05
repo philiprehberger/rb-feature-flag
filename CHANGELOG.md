@@ -16,11 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - User targeting — `enable_for(:feature, users: ["user_1"])` to whitelist specific users
 - Flag groups — `group(:beta, [:feature_a, :feature_b])` for bulk enable/disable
 
-## [0.1.2]
+## [0.1.2] - 2026-03-16
 
+### Changed
 - Add License badge to README
 - Add bug_tracker_uri to gemspec
 - Add Requirements section to README
+
+## [0.1.1] - 2026-03-15
 
 ## [0.1.0] - 2026-03-15
 
