@@ -4,7 +4,7 @@
 [![Gem Version](https://badge.fury.io/rb/philiprehberger-feature_flag.svg)](https://rubygems.org/gems/philiprehberger-feature_flag)
 [![License](https://img.shields.io/github/license/philiprehberger/rb-feature-flag)](LICENSE)
 
-Minimal feature flag system with YAML, ENV, and in-memory backends for Ruby
+Minimal feature flag system with YAML, ENV, and in-memory backends
 
 ## Requirements
 
