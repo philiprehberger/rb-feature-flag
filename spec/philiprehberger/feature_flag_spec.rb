@@ -306,7 +306,7 @@ RSpec.describe Philiprehberger::FeatureFlag do
 
     it 'returns all feature flags from ENV' do
       backend = described_class.configuration.backend
-      allow(ENV).to receive(:select).and_return([['FEATURE_A', 'true'], ['FEATURE_B', 'false']])
+      allow(ENV).to receive(:select).and_return([%w[FEATURE_A true], %w[FEATURE_B false]])
       # We call all and verify it returns a result (the mock shapes the return)
       result = backend.all
       expect(result).to be_a(Array).or be_a(Hash)
