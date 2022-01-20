@@ -48,10 +48,17 @@ module Philiprehberger
 
       def with(flag, value)
         @overrides ||= {}
-        @overrides[flag.to_s] = value
+        key = flag.to_s
+        had_previous = @overrides.key?(key)
+        previous = @overrides[key]
+        @overrides[key] = value
         yield
       ensure
-        @overrides&.delete(flag.to_s)
+        if had_previous
+          @overrides[key] = previous
+        else
+          @overrides&.delete(key)
+        end
       end
 
       def reload!
