@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
 
   spec.summary = 'Minimal feature flag system with YAML, ENV, and in-memory backends'
   spec.description = 'A lightweight feature flag library supporting in-memory, ENV, and YAML backends ' \
-                       'with percentage rollout and A/B variant support.'
+                     'with percentage rollout and A/B variant support.'
   spec.homepage = 'https://philiprehberger.com/open-source-packages/ruby/philiprehberger-feature_flag'
   spec.license = 'MIT'
 
