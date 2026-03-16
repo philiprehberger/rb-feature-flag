@@ -2,8 +2,13 @@
 
 [![Gem Version](https://badge.fury.io/rb/philiprehberger-feature_flag.svg)](https://rubygems.org/gems/philiprehberger-feature_flag)
 [![CI](https://github.com/philiprehberger/rb-feature-flag/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/rb-feature-flag/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/philiprehberger/rb-feature-flag)](LICENSE)
 
 Minimal feature flag system with YAML, ENV, and in-memory backends. Supports percentage rollout and A/B variant assignment.
+
+## Requirements
+
+- Ruby >= 3.1
 
 ## Installation
 
