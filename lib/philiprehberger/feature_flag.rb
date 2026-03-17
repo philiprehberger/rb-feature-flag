@@ -95,7 +95,7 @@ module Philiprehberger
       end
 
       def variant_value?(value)
-        value.is_a?(Hash) && value['variants']
+        value.is_a?(Hash) && !value['variants'].nil?
       end
     end
   end
