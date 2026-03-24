@@ -15,7 +15,7 @@ Minimal feature flag system with YAML, ENV, and in-memory backends for Ruby
 Add to your Gemfile:
 
 ```ruby
-gem 'philiprehberger-feature_flag'
+gem "philiprehberger-feature_flag"
 ```
 
 Or install directly:
