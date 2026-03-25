@@ -29,7 +29,7 @@ gem install philiprehberger-feature_flag
 ### Configuration
 
 ```ruby
-require 'philiprehberger/feature_flag'
+require "philiprehberger/feature_flag"
 
 # In-memory backend (default)
 Philiprehberger::FeatureFlag.configure do |c|
