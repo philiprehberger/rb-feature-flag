@@ -3,6 +3,7 @@
 [![Tests](https://github.com/philiprehberger/rb-feature-flag/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/rb-feature-flag/actions/workflows/ci.yml)
 [![Gem Version](https://badge.fury.io/rb/philiprehberger-feature_flag.svg)](https://rubygems.org/gems/philiprehberger-feature_flag)
 [![License](https://img.shields.io/github/license/philiprehberger/rb-feature-flag)](LICENSE)
+[![Sponsor](https://img.shields.io/badge/sponsor-GitHub%20Sponsors-ec6cb9)](https://github.com/sponsors/philiprehberger)
 
 Minimal feature flag system with YAML, ENV, and in-memory backends
 
@@ -232,4 +233,4 @@ bundle exec rubocop
 
 ## License
 
-MIT
+[MIT](LICENSE)
