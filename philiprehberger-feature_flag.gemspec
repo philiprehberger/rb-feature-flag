@@ -3,16 +3,16 @@
 require_relative 'lib/philiprehberger/feature_flag/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = 'philiprehberger-feature_flag'
-  spec.version       = Philiprehberger::FeatureFlag::VERSION
-  spec.authors       = ['Philip Rehberger']
-  spec.email         = ['me@philiprehberger.com']
+  spec.name = 'philiprehberger-feature_flag'
+  spec.version = Philiprehberger::FeatureFlag::VERSION
+  spec.authors = ['Philip Rehberger']
+  spec.email = ['me@philiprehberger.com']
 
-  spec.summary       = 'Minimal feature flag system with YAML, ENV, and in-memory backends'
-  spec.description   = 'A lightweight feature flag library supporting in-memory, ENV, and YAML backends ' \
+  spec.summary = 'Minimal feature flag system with YAML, ENV, and in-memory backends'
+  spec.description = 'A lightweight feature flag library supporting in-memory, ENV, and YAML backends ' \
                        'with percentage rollout and A/B variant support.'
-  spec.homepage      = 'https://philiprehberger.com/open-source-packages/ruby/philiprehberger-feature_flag'
-  spec.license       = 'MIT'
+  spec.homepage = 'https://philiprehberger.com/open-source-packages/ruby/philiprehberger-feature_flag'
+  spec.license = 'MIT'
 
   spec.required_ruby_version = '>= 3.1.0'
 
