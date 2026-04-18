@@ -202,6 +202,22 @@ end
 Philiprehberger::FeatureFlag.reload!
 ```
 
+### Introspecting known flags
+
+List every flag name the configuration knows about — pulling from the backend, registered dependencies, schedules, targeted users, and groups. The result is deduplicated, sorted ascending, and returned as an array of symbols.
+
+```ruby
+flags = Philiprehberger::FeatureFlag
+
+flags.configuration.backend.set(:dark_mode, true)
+flags.schedule(:holiday_banner, enable_at: Time.new(2026, 12, 24))
+flags.depends_on(:new_ui, requires: :beta_users)
+flags.enable_for(:vip_only, users: %w[user_1])
+
+flags.flag_names
+# => [:beta_users, :dark_mode, :holiday_banner, :new_ui, :vip_only]
+```
+
 ## API
 
 | Method | Description |
@@ -212,6 +228,7 @@ Philiprehberger::FeatureFlag.reload!
 | `.with(flag, value) { }` | Override a flag in a block |
 | `.reload!` | Reload flags from the backend |
 | `.reset!` | Reset configuration and overrides |
+| `.flag_names` | Sorted, deduplicated list of all known flag names |
 | `.depends_on(flag, requires:)` | Declare a flag dependency |
 | `.schedule(flag, enable_at:, disable_at:)` | Schedule flag activation window |
 | `.metrics(flag)` | Get check/enabled/disabled counts |
