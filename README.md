@@ -68,6 +68,41 @@ variant = Philiprehberger::FeatureFlag.variant(:button_color, user_id: current_u
 # => 'red', 'blue', or 'green' (consistent per user)
 ```
 
+### Context-aware rollouts
+
+`enabled?` and `variant` accept a `context:` hash that flows through targeting
+and rollout bucketing. Targeting predicates can match on context values, and
+rollout bucketing can include context keys via a per-flag `rollout_by` list.
+
+```ruby
+flags = Philiprehberger::FeatureFlag
+
+# Whitelist everyone in a region (context predicate — no user id required)
+flags.enable_for(:regional_ui, context: { region: 'us-west' })
+
+flags.enabled?(:regional_ui, context: { region: 'us-west' }) # => true
+flags.enabled?(:regional_ui, context: { region: 'eu-east' }) # => false (falls
+# back to backend)
+```
+
+Rollouts can mix context keys into the bucket key — so the same user gets a
+different rollout assignment per region, tenant, etc.
+
+```ruby
+# Backend value (e.g. from YAML)
+flags.configuration.backend.set(:new_search, {
+  'percentage' => 50,
+  'rollout_by' => %w[user_id region]
+})
+
+flags.enabled?(:new_search, user_id: 'u-1', context: { region: 'us-west' })
+flags.enabled?(:new_search, user_id: 'u-1', context: { region: 'eu-east' })
+# The two calls may return different values — a user's bucket is now per-region.
+```
+
+When `rollout_by` is omitted the default stays `[:user_id]`, preserving the
+original single-bucket-per-user behavior.
+
 ### Dependencies
 
 Gate a flag behind another flag. The dependent flag is only enabled when its required flag is also enabled.
@@ -223,8 +258,8 @@ flags.flag_names
 | Method | Description |
 |--------|-------------|
 | `.configure { \|c\| ... }` | Configure the backend |
-| `.enabled?(flag, user_id: nil, user: nil)` | Check if a flag is enabled |
-| `.variant(flag, user_id:)` | Get A/B variant for a user |
+| `.enabled?(flag, user_id: nil, user: nil, context: {})` | Check if a flag is enabled |
+| `.variant(flag, user_id:, context: {})` | Get A/B variant for a user |
 | `.with(flag, value) { }` | Override a flag in a block |
 | `.reload!` | Reload flags from the backend |
 | `.reset!` | Reset configuration and overrides |
@@ -232,12 +267,13 @@ flags.flag_names
 | `.depends_on(flag, requires:)` | Declare a flag dependency |
 | `.schedule(flag, enable_at:, disable_at:)` | Schedule flag activation window |
 | `.metrics(flag)` | Get check/enabled/disabled counts |
-| `.enable_for(flag, users:)` | Whitelist users for a flag |
+| `.enable_for(flag, users: nil, context: nil)` | Whitelist users or a context predicate for a flag |
 | `.disable_for(flag, users:)` | Remove users from whitelist |
 | `.group(name, flags)` | Define a flag group |
 | `.enable_group(name)` | Enable all flags in a group |
 | `.disable_group(name)` | Disable all flags in a group |
 | `.group_flags(name)` | List flags in a group |
+| `Rollout.enabled_for?(flag, user_id, percentage, context: {}, rollout_by: [:user_id])` | Low-level rollout check |
 
 ## Development
 

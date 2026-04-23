@@ -3,6 +3,12 @@
 module Philiprehberger
   module FeatureFlag
     module Groups
+      # Define a named group of flags for bulk enable/disable operations.
+      # Redefining a group overwrites it.
+      #
+      # @param name [Symbol, String] group name
+      # @param flags [Array<Symbol, String>] flag names in the group
+      # @return [Array<Symbol>] the normalized flag names
       def group(name, flags)
         @groups ||= {}
         @groups[name.to_sym] = flags.map(&:to_sym)

@@ -1171,4 +1171,166 @@ RSpec.describe Philiprehberger::FeatureFlag do
       expect(described_class.enabled?(:feat)).to be false
     end
   end
+
+  describe 'context-aware targeting and rollouts' do
+    before do
+      described_class.configure { |c| c.use(:memory) }
+    end
+
+    describe 'enabled? with context: targeting predicate' do
+      it 'enables the flag when the context matches the predicate' do
+        described_class.enable_for(:regional_ui, context: { region: 'us-west' })
+        expect(
+          described_class.enabled?(:regional_ui, context: { region: 'us-west' })
+        ).to be true
+      end
+
+      it 'falls back to the backend when the context does not match' do
+        described_class.enable_for(:regional_ui, context: { region: 'us-west' })
+        described_class.configuration.backend.set(:regional_ui, false)
+        expect(
+          described_class.enabled?(:regional_ui, context: { region: 'eu-east' })
+        ).to be false
+      end
+
+      it 'matches when the predicate uses an Array of allowed values' do
+        described_class.enable_for(:multi_region, context: { region: %w[us-west us-east] })
+        expect(
+          described_class.enabled?(:multi_region, context: { region: 'us-east' })
+        ).to be true
+      end
+
+      it 'matches on string context keys when the predicate uses a symbol' do
+        described_class.enable_for(:tenant_flag, context: { tenant: 'acme' })
+        expect(
+          described_class.enabled?(:tenant_flag, context: { 'tenant' => 'acme' })
+        ).to be true
+      end
+
+      it 'does not affect evaluation when context is empty (default behavior)' do
+        described_class.enable_for(:regional_ui, context: { region: 'us-west' })
+        described_class.configuration.backend.set(:regional_ui, false)
+        expect(described_class.enabled?(:regional_ui)).to be false
+      end
+
+      it 'allows combining user list + context predicate for the same flag' do
+        described_class.enable_for(:hybrid, users: %w[user_1], context: { region: 'us-west' })
+        expect(described_class.enabled?(:hybrid, user: 'user_1')).to be true
+        expect(described_class.enabled?(:hybrid, context: { region: 'us-west' })).to be true
+      end
+    end
+
+    describe 'Rollout.enabled_for? with rollout_by' do
+      it 'defaults rollout_by to [:user_id] — preserves historic bucketing' do
+        with_default = Philiprehberger::FeatureFlag::Rollout.enabled_for?(:feat, 'user-1', 50)
+        with_explicit = Philiprehberger::FeatureFlag::Rollout.enabled_for?(
+          :feat, 'user-1', 50, rollout_by: [:user_id]
+        )
+        expect(with_default).to eq(with_explicit)
+      end
+
+      it 'produces different bucket keys for the same user across different context values' do
+        keys = %w[us-west eu-east ap-south].map do |region|
+          Philiprehberger::FeatureFlag::Rollout.bucket_key(
+            'user-42', { region: region }, %i[user_id region]
+          )
+        end
+        expect(keys.uniq.size).to eq(3)
+        expect(keys).to eq(%w[user-42|us-west user-42|eu-east user-42|ap-south])
+      end
+
+      it 'different context combos hash to different 0..99 buckets for at least one flag' do
+        flag = :bucket_variety
+        results = %w[us-west eu-east ap-south latam].map do |region|
+          key = Philiprehberger::FeatureFlag::Rollout.bucket_key(
+            'user-42', { region: region }, %i[user_id region]
+          )
+          Zlib.crc32("#{flag}:#{key}") % 100
+        end
+        # Four distinct keys hashed mod 100 are extremely unlikely to collide.
+        expect(results.uniq.size).to be > 1
+      end
+
+      it 'stable bucket for same (user, context) tuple' do
+        call = lambda do
+          Philiprehberger::FeatureFlag::Rollout.enabled_for?(
+            :feat, 'user-42', 50,
+            context: { region: 'us-west' }, rollout_by: %i[user_id region]
+          )
+        end
+        expect(call.call).to eq(call.call)
+      end
+
+      it 'returns false when every component of the bucket key is nil' do
+        result = Philiprehberger::FeatureFlag::Rollout.enabled_for?(
+          :feat, nil, 50,
+          context: { region: nil }, rollout_by: %i[user_id region]
+        )
+        expect(result).to be false
+      end
+
+      it 'rollout_by context key without user_id still produces a stable bucket' do
+        result1 = Philiprehberger::FeatureFlag::Rollout.enabled_for?(
+          :feat, nil, 50, context: { tenant: 'acme' }, rollout_by: [:tenant]
+        )
+        result2 = Philiprehberger::FeatureFlag::Rollout.enabled_for?(
+          :feat, nil, 50, context: { tenant: 'acme' }, rollout_by: [:tenant]
+        )
+        expect(result1).to eq(result2)
+      end
+    end
+
+    describe 'enabled? threads rollout_by from the flag config' do
+      it 'uses rollout_by from the backend hash to diversify buckets per context' do
+        described_class.configuration.backend.set(:new_search, {
+                                                    'percentage' => 50,
+                                                    'rollout_by' => %w[user_id region]
+                                                  })
+        # 20 distinct regions at 50% rollout will almost always produce both
+        # true and false buckets for a single user.
+        results = (1..20).map do |i|
+          described_class.enabled?(:new_search, user_id: 'user-42',
+                                                context: { region: "region_#{i}" })
+        end
+        expect(results.uniq.size).to eq(2)
+      end
+
+      it 'default rollout_by preserves legacy behavior when omitted' do
+        described_class.configuration.backend.set(:legacy, { 'percentage' => 50 })
+        r1 = described_class.enabled?(:legacy, user_id: 'user-42')
+        r2 = described_class.enabled?(:legacy, user_id: 'user-42',
+                                               context: { region: 'anything' })
+        expect(r1).to eq(r2)
+      end
+    end
+  end
+
+  describe 'scheduling type validation' do
+    before do
+      described_class.configure { |c| c.use(:memory) }
+      described_class.configuration.backend.set(:flag, true)
+    end
+
+    it 'raises ArgumentError when enable_at is a non-Time value' do
+      described_class.schedule(:flag, enable_at: '2026-01-01', disable_at: nil)
+      expect { described_class.enabled?(:flag) }
+        .to raise_error(ArgumentError, /enable_at must be a Time/)
+    end
+
+    it 'raises ArgumentError when disable_at is a non-Time value' do
+      described_class.schedule(:flag, enable_at: nil, disable_at: 1_700_000_000)
+      expect { described_class.enabled?(:flag) }
+        .to raise_error(ArgumentError, /disable_at must be a Time/)
+    end
+
+    it 'does not raise when enable_at and disable_at are nil' do
+      described_class.schedule(:flag, enable_at: nil, disable_at: nil)
+      expect { described_class.enabled?(:flag) }.not_to raise_error
+    end
+
+    it 'does not raise for valid Time values' do
+      described_class.schedule(:flag, enable_at: Time.now - 60, disable_at: Time.now + 60)
+      expect { described_class.enabled?(:flag) }.not_to raise_error
+    end
+  end
 end

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-23
+
+### Added
+- `context:` keyword argument on `enabled?` and `variant` for context-aware targeting and rollouts.
+- `rollout_by:` option on rollout configuration — hash bucketing can include context keys (default: `[:user_id]`).
+- YARD documentation on top-level public API methods.
+
+### Changed
+- `Scheduling` now raises `ArgumentError` if `enable_at` or `disable_at` are set to non-Time values.
+- Bug report template `gem-version` field is now required.
+
 ## [0.3.0] - 2026-04-17
 
 ### Added

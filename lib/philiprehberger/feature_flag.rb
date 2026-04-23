@@ -25,24 +25,57 @@ module Philiprehberger
         @configuration ||= Configuration.new
       end
 
+      # Configure the feature flag system. Yields the shared
+      # {Configuration} instance so callers can pick a backend or mutate
+      # settings.
+      #
+      # @yieldparam config [Configuration]
+      # @return [void]
       def configure
         yield(configuration)
       end
 
-      def enabled?(flag, user_id: nil, user: nil)
+      # Check whether +flag+ is enabled. The lookup honors (in order):
+      # in-flight overrides from {.with}, dependency gates, scheduling
+      # windows, user targeting, and finally the backend value — which may
+      # be a boolean, a percentage rollout, or any truthy value.
+      #
+      # @param flag [Symbol, String] flag name
+      # @param user_id [String, Integer, nil] used for percentage rollouts
+      # @param user [String, Integer, nil] used for user-list targeting
+      # @param context [Hash] optional context passed to targeting
+      #   predicates and rollout bucketing (see +rollout_by+ on the flag
+      #   configuration)
+      # @return [Boolean, Object] boolean for normal flags; whatever was
+      #   stored (including +nil+) when an override is active
+      def enabled?(flag, user_id: nil, user: nil, context: {})
         return @overrides[flag.to_s] if overridden?(flag)
 
-        result = evaluate_flag(flag, user_id, user)
+        result = evaluate_flag(flag, user_id, user, context)
         record_metric(flag, result)
         result
       end
 
-      def variant(flag, user_id:)
+      # Return the A/B variant for +user_id+ on +flag+. Variants are
+      # stored as +{ 'variants' => [...] }+ on the backend and selected
+      # deterministically from the user id (optionally combined with
+      # +context+ when the flag declares +rollout_by+).
+      #
+      # @param flag [Symbol, String] flag name
+      # @param user_id [String, Integer] bucket key
+      # @param context [Hash] optional context hash; used with the flag's
+      #   +rollout_by+ to diversify variant selection
+      # @return [String, nil] the selected variant, or +nil+ when the flag
+      #   is not a variant-shaped hash
+      def variant(flag, user_id:, context: {})
         value = configuration.backend.get(flag)
         return nil unless variant_value?(value)
 
         variants = value['variants']
-        bucket = Zlib.crc32("#{flag}:#{user_id}") % variants.size
+        rollout_by = Array(value['rollout_by']).map(&:to_sym)
+        rollout_by = [:user_id] if rollout_by.empty?
+        key = Rollout.bucket_key(user_id, context, rollout_by) || user_id.to_s
+        bucket = Zlib.crc32("#{flag}:#{key}") % variants.size
         variants[bucket]
       end
 
@@ -108,18 +141,24 @@ module Philiprehberger
         []
       end
 
-      def evaluate_flag(flag, user_id, user)
-        return false unless dependencies_met?(flag)
+      def evaluate_flag(flag, user_id, user, context)
+        return false unless dependencies_met?(flag, context)
         return false unless scheduled_active?(flag)
-        return true if targeted?(flag, user)
+        return true if targeted?(flag, user, context: context)
 
-        resolve_backend_value(flag, user_id)
+        resolve_backend_value(flag, user_id, context)
       end
 
-      def resolve_backend_value(flag, user_id)
+      def resolve_backend_value(flag, user_id, context)
         value = configuration.backend.get(flag)
         return false if value.nil?
-        return Rollout.enabled_for?(flag, user_id, value['percentage']) if rollout?(value)
+
+        if rollout?(value)
+          rollout_by = Array(value['rollout_by']).map(&:to_sym)
+          rollout_by = [:user_id] if rollout_by.empty?
+          return Rollout.enabled_for?(flag, user_id, value['percentage'],
+                                      context: context, rollout_by: rollout_by)
+        end
 
         !!value
       end
