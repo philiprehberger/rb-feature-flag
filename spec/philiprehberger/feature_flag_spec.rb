@@ -100,6 +100,56 @@ RSpec.describe Philiprehberger::FeatureFlag do
     end
   end
 
+  describe '.flag_names' do
+    before { described_class.configure { |c| c.use(:memory) } }
+
+    it 'returns [] when no flags are configured' do
+      expect(described_class.flag_names).to eq([])
+    end
+
+    it 'returns configured flag names from the backend' do
+      described_class.configuration.backend.set(:dark_mode, true)
+      described_class.configuration.backend.set(:beta_search, false)
+      expect(described_class.flag_names).to eq(%i[beta_search dark_mode])
+    end
+
+    it 'includes flags that only appear as a dependency target' do
+      described_class.depends_on(:child, requires: :parent_only)
+      expect(described_class.flag_names).to include(:parent_only)
+    end
+
+    it 'includes flags that only appear in a schedule' do
+      described_class.schedule(:holiday_banner, enable_at: Time.now + 3600)
+      expect(described_class.flag_names).to include(:holiday_banner)
+    end
+
+    it 'includes flags that only appear as an enable_for scope target' do
+      described_class.enable_for(:vip_only, users: %w[user_1])
+      expect(described_class.flag_names).to include(:vip_only)
+    end
+
+    it 'output is sorted and deduplicated across sources' do
+      described_class.configuration.backend.set(:zulu, true)
+      described_class.configuration.backend.set(:alpha, false)
+      described_class.depends_on(:alpha, requires: :zulu)
+      described_class.schedule(:alpha, enable_at: Time.now + 3600)
+      described_class.enable_for(:alpha, users: %w[user_1])
+      described_class.group(:beta, %i[alpha mike])
+
+      result = described_class.flag_names
+      expect(result).to eq(%i[alpha mike zulu])
+      expect(result).to eq(result.uniq)
+      expect(result).to eq(result.sort)
+    end
+
+    it 'silently skips backends that do not expose flag names' do
+      opaque_backend = Object.new
+      described_class.configuration.backend = opaque_backend
+      described_class.schedule(:only_scheduled, enable_at: Time.now + 3600)
+      expect(described_class.flag_names).to eq([:only_scheduled])
+    end
+  end
+
   describe '.enabled?' do
     context 'with memory backend' do
       before do

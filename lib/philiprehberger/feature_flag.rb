@@ -65,6 +65,25 @@ module Philiprehberger
         configuration.backend.reload!
       end
 
+      # Return the sorted, deduplicated union of every flag name known to the
+      # configured backend and the registered dependency, schedule, targeting,
+      # and group subsystems.
+      #
+      # Backends that do not expose their flag names (for example, opaque
+      # remote backends without an +all+ accessor) are skipped silently.
+      #
+      # @return [Array<Symbol>] ascending-sorted unique flag names
+      def flag_names
+        names = []
+        names.concat(backend_flag_names)
+        names.concat(Array(@dependencies&.keys))
+        names.concat(Array(@dependencies&.values))
+        names.concat(Array(@schedules&.keys))
+        names.concat(Array(@targets&.keys))
+        names.concat(Array(@groups&.values).flatten)
+        names.map(&:to_sym).uniq.sort
+      end
+
       def reset!
         @configuration = nil
         @overrides = nil
@@ -76,6 +95,18 @@ module Philiprehberger
       end
 
       private
+
+      def backend_flag_names
+        backend = configuration.backend
+        return [] unless backend.respond_to?(:all)
+
+        entries = backend.all
+        return [] unless entries.respond_to?(:keys)
+
+        entries.keys
+      rescue StandardError
+        []
+      end
 
       def evaluate_flag(flag, user_id, user)
         return false unless dependencies_met?(flag)
