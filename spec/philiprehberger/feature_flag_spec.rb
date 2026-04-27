@@ -100,6 +100,74 @@ RSpec.describe Philiprehberger::FeatureFlag do
     end
   end
 
+  describe '.reset_all!' do
+    before { described_class.configure { |c| c.use(:memory) } }
+
+    it 'clears registered flags so flags returns []' do
+      described_class.configuration.backend.set(:dark_mode, true)
+      described_class.configuration.backend.set(:beta_search, false)
+      expect(described_class.flags).not_to be_empty
+      described_class.reset_all!
+      expect(described_class.flags).to eq([])
+    end
+
+    it 'clears overrides' do
+      described_class.configuration.backend.set(:flag, false)
+      described_class.with(:flag, true) do
+        described_class.reset_all!
+      end
+      described_class.configure { |c| c.use(:memory) }
+      described_class.configuration.backend.set(:flag, false)
+      expect(described_class.enabled?(:flag)).to be false
+    end
+
+    it 'clears metrics' do
+      described_class.configuration.backend.set(:feature_x, true)
+      described_class.enabled?(:feature_x)
+      described_class.reset_all!
+      expect(described_class.metrics(:feature_x)).to eq({ checks: 0, enabled: 0, disabled: 0 })
+    end
+
+    it 'clears dependencies, schedules, targets, and groups' do
+      described_class.depends_on(:child, requires: :parent)
+      described_class.schedule(:windowed, enable_at: Time.now + 3600)
+      described_class.enable_for(:vip_only, users: %w[user_1])
+      described_class.group(:beta, %i[a b])
+      described_class.reset_all!
+      expect(described_class.dependency_for(:child)).to be_nil
+      expect(described_class.schedule_for(:windowed)).to be_nil
+      expect(described_class.targeted_users(:vip_only)).to eq([])
+      expect(described_class.group_flags(:beta)).to eq([])
+    end
+
+    it 'is safe to call when nothing is registered' do
+      described_class.reset_all!
+      expect { described_class.reset_all! }.not_to raise_error
+      expect(described_class.flags).to eq([])
+    end
+  end
+
+  describe '.flags' do
+    before { described_class.configure { |c| c.use(:memory) } }
+
+    it 'returns [] when no flags are registered' do
+      expect(described_class.flags).to eq([])
+    end
+
+    it 'returns registered flag names after backend define' do
+      described_class.configuration.backend.set(:dark_mode, true)
+      described_class.configuration.backend.set(:beta_search, false)
+      expect(described_class.flags).to eq(%i[beta_search dark_mode])
+    end
+
+    it 'includes flags referenced only by subsystems' do
+      described_class.depends_on(:child, requires: :parent_only)
+      described_class.schedule(:scheduled_only, enable_at: Time.now + 3600)
+      described_class.enable_for(:vip_only, users: %w[user_1])
+      expect(described_class.flags).to include(:parent_only, :scheduled_only, :vip_only)
+    end
+  end
+
   describe '.flag_names' do
     before { described_class.configure { |c| c.use(:memory) } }
 

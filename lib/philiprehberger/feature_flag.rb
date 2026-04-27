@@ -127,6 +127,36 @@ module Philiprehberger
         reset_groups!
       end
 
+      # Fully reset every piece of registry state — backend-stored flags,
+      # in-flight overrides, recorded metrics, dependencies, schedules,
+      # targets, context predicates, and groups. Intended for use in test
+      # suites (e.g. +before(:each) { FeatureFlag.reset_all! }+) so each
+      # example starts from a clean slate. Safe to call when nothing is
+      # registered.
+      #
+      # @return [void]
+      def reset_all!
+        @configuration = nil
+        @overrides = nil
+        reset_dependencies!
+        reset_schedules!
+        reset_metrics!
+        reset_targets!
+        reset_groups!
+        nil
+      end
+
+      # Return the array of registered flag names. A flag is considered
+      # registered when it has been stored on the backend or referenced by
+      # any of the dependency, schedule, targeting, or group subsystems.
+      # Equivalent to {.flag_names} — kept as a shorter alias for callers
+      # that want the registered list without thinking about ordering.
+      #
+      # @return [Array<Symbol>] sorted, deduplicated registered flag names
+      def flags
+        flag_names
+      end
+
       private
 
       def backend_flag_names

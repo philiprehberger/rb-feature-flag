@@ -221,7 +221,10 @@ export FEATURE_DARK_MODE=true
 export FEATURE_BETA_SEARCH=false
 ```
 
-### Test helper
+### Test Helpers
+
+`with` scopes a single override to a block — the original value is restored
+when the block exits.
 
 ```ruby
 Philiprehberger::FeatureFlag.with(:dark_mode, true) do
@@ -229,6 +232,23 @@ Philiprehberger::FeatureFlag.with(:dark_mode, true) do
   assert Philiprehberger::FeatureFlag.enabled?(:dark_mode)
 end
 # original value restored after block
+```
+
+`reset_all!` clears every piece of registry state — backend-stored flags,
+overrides, metrics, dependencies, schedules, targets, and groups. Pair it
+with `flags` to assert a clean slate at the start of each example.
+
+```ruby
+RSpec.configure do |config|
+  config.before(:each) { Philiprehberger::FeatureFlag.reset_all! }
+end
+
+# In a spec
+Philiprehberger::FeatureFlag.configuration.backend.set(:dark_mode, true)
+Philiprehberger::FeatureFlag.flags # => [:dark_mode]
+
+Philiprehberger::FeatureFlag.reset_all!
+Philiprehberger::FeatureFlag.flags # => []
 ```
 
 ### Reloading
@@ -263,6 +283,8 @@ flags.flag_names
 | `.with(flag, value) { }` | Override a flag in a block |
 | `.reload!` | Reload flags from the backend |
 | `.reset!` | Reset configuration and overrides |
+| `.reset_all!` | Reset every piece of registry state (flags, overrides, metrics, dependencies, schedules, targets, groups) — intended for test cleanup |
+| `.flags` | List registered flag names (alias of `.flag_names`) |
 | `.flag_names` | Sorted, deduplicated list of all known flag names |
 | `.depends_on(flag, requires:)` | Declare a flag dependency |
 | `.schedule(flag, enable_at:, disable_at:)` | Schedule flag activation window |
